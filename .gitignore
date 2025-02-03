@@ -1,2 +1,3 @@
 *.tar
 *monerosms-auth*
+__pycache__
