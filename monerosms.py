@@ -43,8 +43,28 @@ def watch_thread(thread_num):
     except KeyboardInterrupt:
         pass
 
+def print_thread(thread_num, offset): 
+    req = requests.get(
+        f"{base_url}{user}/thread/{thread_num}/{offset}", proxies=proxies)
+    if req.status_code != 200:
+        sys.stderr.write(f"Error {req.status_code} \n{req.text}")
+        sys.exit(1)
+    for message in req.json():
+        if message['Incoming']:
+            # EpochMili to human readable
+            print(datetime.datetime.fromtimestamp(
+                    message['EpochMili'] / 1000).strftime(
+                        '%Y-%m-%d %H:%M:%S'),
+                    f"From {thread_num}:\n{message['Body']}")
+        else:
+            print(datetime.datetime.fromtimestamp(
+                    message['EpochMili'] / 1000).strftime(
+                        '%Y-%m-%d %H:%M:%S'),
+                    f"To {thread_num}:\n{message['Body']}")
+
 
 def menu():
+    dashline = "------------------------------"
     offset = 0
     req = None
     match arg:
@@ -128,23 +148,16 @@ def menu():
                 offset = int(sys.argv[3])
             except IndexError:
                 pass
-            req = requests.get(
-                f"{base_url}{user}/thread/{thread_num}/{offset}", proxies=proxies)
-            if req.status_code != 200:
-                sys.stderr.write(f"Error {req.status_code} \n{req.text}")
-                sys.exit(1)
-            for message in req.json():
-                if message['Incoming']:
-                    # EpochMili to human readable
-                    print(datetime.datetime.fromtimestamp(
-                            message['EpochMili'] / 1000).strftime(
-                                '%Y-%m-%d %H:%M:%S'),
-                          f"From {thread_num}:\n{message['Body']}")
-                else:
-                    print(datetime.datetime.fromtimestamp(
-                            message['EpochMili'] / 1000).strftime(
-                                '%Y-%m-%d %H:%M:%S'),
-                          f"To {thread_num}:\n{message['Body']}")
+            print_thread(thread_num, offset)
+            sys.exit(0)
+
+        case "allthreads": 
+            threadsList = requests.get(f"{base_url}{user}/list", proxies=proxies).text.splitlines()
+
+            for thread in threadsList:
+                print(f"{dashline} {thread} {dashline}")
+                print_thread(thread, 0)
+                print()
             sys.exit(0)
 
         case "":
